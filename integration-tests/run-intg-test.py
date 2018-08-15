@@ -31,7 +31,7 @@ from xml.dom import minidom
 import configure_product as cp
 from subprocess import Popen, PIPE
 from const import TEST_PLAN_PROPERTY_FILE_NAME, INFRA_PROPERTY_FILE_NAME, LOG_FILE_NAME, DB_META_DATA, \
-    PRODUCT_STORAGE_DIR_NAME, DEFAULT_DB_USERNAME, LOG_STORAGE, LOG_FILE_PATHS, DIST_POM_PATH, NS, ZIP_FILE_EXTENSION
+    PRODUCT_STORAGE_DIR_NAME, DEFAULT_DB_USERNAME, LOG_STORAGE, LOG_FILE_PATHS, DIST_POM_PATH, TEST_POM_PATH, NS, ZIP_FILE_EXTENSION, PROFILE_PATHS
 
 git_repo_url = None
 git_branch = None
@@ -307,6 +307,9 @@ def copy_file(source, target):
     else:
         shutil.copy(source, target)
 
+def get_immediate_child_directories(a_dir):
+    return [name for name in os.listdir(a_dir)
+            if os.path.isdir(os.path.join(a_dir, name))]
 
 def get_dist_name():
     """Get the product name by reading distribution pom.
@@ -574,16 +577,20 @@ def main():
             checkout_to_tag(get_latest_tag_name(product_id))
             dist_name = get_dist_name()
             get_latest_released_dist()
-            testng_source = Path(workspace + "/" + "testng.xml")
-            testng_destination = Path(workspace + "/" + product_id + "/" +
-                                      'modules/integration/tests-integration/tests-backend/src/test/resources/testng.xml')
-            testng_server_mgt_source = Path(workspace + "/" + "testng-server-mgt.xml")
-            testng_server_mgt_destination = Path(workspace + "/" + product_id + "/" +
-                                                 'modules/integration/tests-integration/tests-backend/src/test/resources/testng-server-mgt.xml')
-            # replace testng source
-            replace_file(testng_source, testng_destination)
-            # replace testng server mgt source
-            replace_file(testng_server_mgt_source, testng_server_mgt_destination)
+
+            # Replace the custom pom to disable profiles
+            test_pom_source = Path(workspace + "/pom.xml")
+            test_pom_destination = Path(workspace + "/" + product_id + "/" + TEST_POM_PATH)
+            replace_file(test_pom_source, test_pom_destination)
+
+            # Replace the custom testng files to disable tests
+            for profile in PROFILE_PATHS:
+                MODULES = get_immediate_child_directories(Path(workspace + "/" + profile))
+                for module in MODULES:
+                    testng_source = Path(workspace + "/" + profile + "/" + module + "/" + "testng.xml")
+                    testng_destination = Path(workspace + "/" + product_id + "/" +
+                                      'integration/' + profile + "/" + module + "/" + '/src/test/resources/testng.xml')
+                    replace_file(testng_source, testng_destination)
         elif test_mode == "RELEASE":
             checkout_to_tag(get_latest_tag_name(product_id))
             dist_name = get_dist_name()

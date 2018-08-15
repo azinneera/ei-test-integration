@@ -18,6 +18,7 @@ set -e
 set -o xtrace
 
 DIR=$2
+DIR1=mediation-tests
 FILE1=${DIR}/infrastructure.properties
 FILE2=${DIR}/testplan-props.properties
 FILE3=run-intg-test.py
@@ -26,7 +27,7 @@ FILE5=const.py
 FILE6=requirements.txt
 FILE7=intg-test-runner.sh
 FILE8=intg-test-runner.bat
-FILE9=testng.xml
+FILE9=pom.xml
 FILE10=testng-server-mgt.xml
 
 PROP_KEY=sshKeyFileLocation      #pem file
@@ -139,6 +140,7 @@ if [ "${os}" = "Windows" ]; then
   request_ec2_password $instance_id
   REM_DIR=$(echo "$REM_DIR" | sed 's/\\//g')
   echo "Copying files to ${REM_DIR}.."
+  sshpass -p "${password}" scp -q -o StrictHostKeyChecking=no -r ${DIR1} ${user}@${host}:${REM_DIR}
   sshpass -p "${password}" scp -q -o StrictHostKeyChecking=no ${FILE1} ${user}@${host}:${REM_DIR}
   sshpass -p "${password}" scp -q -o StrictHostKeyChecking=no ${FILE2} ${user}@${host}:${REM_DIR}
   sshpass -p "${password}" scp -q -o StrictHostKeyChecking=no ${FILE3} ${user}@${host}:${REM_DIR}
@@ -162,6 +164,7 @@ if [ "${os}" = "Windows" ]; then
   set -o xtrace
 else
   #for all UNIX instances
+  scp -o StrictHostKeyChecking=no -i ${key_pem} -r ${DIR1} ${user}@${host}:${REM_DIR}
   ssh -o StrictHostKeyChecking=no -i ${key_pem} ${user}@${host} mkdir -p ${REM_DIR}
   scp -o StrictHostKeyChecking=no -i ${key_pem} ${FILE1} ${user}@${host}:${REM_DIR}
   scp -o StrictHostKeyChecking=no -i ${key_pem} ${FILE2} ${user}@${host}:${REM_DIR}
