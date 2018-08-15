@@ -31,7 +31,7 @@ from xml.dom import minidom
 import configure_product as cp
 from subprocess import Popen, PIPE
 from const import TEST_PLAN_PROPERTY_FILE_NAME, INFRA_PROPERTY_FILE_NAME, LOG_FILE_NAME, DB_META_DATA, \
-    PRODUCT_STORAGE_DIR_NAME, DEFAULT_DB_USERNAME, LOG_STORAGE, LOG_FILE_PATHS, DIST_POM_PATH, NS, ZIP_FILE_EXTENSION
+    PRODUCT_STORAGE_DIR_NAME, DEFAULT_DB_USERNAME, LOG_STORAGE, LOG_FILE_PATHS, DIST_POM_PATH, TEST_POM_PATH, NS, ZIP_FILE_EXTENSION, PROFILE_PATHS
 
 git_repo_url = None
 git_branch = None
@@ -296,6 +296,9 @@ def run_mysql_script_file(db_name, script_path):
         connector.execute(sql_part)
     conn.close()
 
+def get_immediate_child_directories(a_dir):
+    return [name for name in os.listdir(a_dir)
+            if os.path.isdir(os.path.join(a_dir, name))]
 
 def copy_file(source, target):
     """Copy the source file to the target.
@@ -306,6 +309,16 @@ def copy_file(source, target):
         shutil.copy(source, target)
     else:
         shutil.copy(source, target)
+
+def copy_tree(source, target):
+    """Copy the source file to the target.
+    """
+    if sys.platform.startswith('win'):
+        source = cp.winapi_path(source)
+        target = cp.winapi_path(target)
+        shutil.copytree(source, target)
+    else:
+        shutil.copytree(source, target)
 
 
 def get_dist_name():
@@ -428,6 +441,25 @@ def save_log_files():
             else:
                 logger.error("File doesn't contain in the given location: " + str(absolute_file_path))
 
+def copy_test_outputs():
+    """
+    Copy automation.log and surefire-reports to workspace/test_outputs
+    """
+    for profile in PROFILE_PATHS:
+        MODULES = get_immediate_child_directories(Path(workspace + "/" + profile))
+        for module in MODULES:
+            source = Path(workspace + "/" + product_id + "/" + 'integration/' + profile + "/" + module + "/target/surefire-reports/")
+            if Path.exists(source):
+                dest_dir_structure = profile + "/" + module + "/target/surefire-reports/"
+                destination = Path(workspace + "/test_outputs/" + dest_dir_structure)
+                copy_tree(source, destination)
+
+            source = Path(workspace + "/" + product_id + "/" + 'integration/' + profile + "/" + module + "/target/logs/automation.log")
+            if Path.exists(source):
+                dest_dir_structure = profile + "/" + module + "/target/logs/"
+                destination = Path(workspace + "/test_outputs/" + dest_dir_structure)
+                os.makedirs(destination)
+                copy_file(source, destination)
 
 def clone_repo():
     """Clone the product repo
@@ -541,7 +573,6 @@ def create_output_property_fle():
     output_property_file.write("GIT_REVISION=%s\r\n" % tag_name)
     output_property_file.close()
 
-
 def replace_file(source, destination):
     """Replace source file to the destination
     """
@@ -574,16 +605,26 @@ def main():
             checkout_to_tag(get_latest_tag_name(product_id))
             dist_name = get_dist_name()
             get_latest_released_dist()
-            testng_source = Path(workspace + "/" + "testng.xml")
-            testng_destination = Path(workspace + "/" + product_id + "/" +
-                                      'modules/integration/tests-integration/tests-backend/src/test/resources/testng.xml')
-            testng_server_mgt_source = Path(workspace + "/" + "testng-server-mgt.xml")
-            testng_server_mgt_destination = Path(workspace + "/" + product_id + "/" +
-                                                 'modules/integration/tests-integration/tests-backend/src/test/resources/testng-server-mgt.xml')
-            # replace testng source
-            replace_file(testng_source, testng_destination)
-            # replace testng server mgt source
-            replace_file(testng_server_mgt_source, testng_server_mgt_destination)
+
+            # Replace the custom pom to disable profiles
+            test_pom_source = Path(workspace + "/pom.xml")
+            test_pom_destination = Path(workspace + "/" + product_id + "/" + TEST_POM_PATH)
+            replace_file(test_pom_source, test_pom_destination)
+
+            # Replace the custom testng files to disable tests
+            for profile in PROFILE_PATHS:
+                MODULES = get_immediate_child_directories(Path(workspace + "/" + profile))
+                for module in MODULES:
+                    testng_source = Path(workspace + "/" + profile + "/" + module + "/" + "testng.xml")
+                    testng_destination = Path(workspace + "/" + product_id + "/" +
+                                      'integration/' + profile + "/" + module + "/" + '/src/test/resources/testng.xml')
+                    # testng_server_mgt_source = Path(workspace + "/" + "testng-server-mgt.xml")
+                    # testng_server_mgt_destination = Path(workspace + "/" + product_id + "/" +
+                    #                                     'modules/integration/tests-integration/tests-backend/src/test/resources/testng-server-mgt.xml')
+                    # replace testng source
+                    replace_file(testng_source, testng_destination)
+                    # replace testng server mgt source
+                    # replace_file(testng_server_mgt_source, testng_server_mgt_destination)
         elif test_mode == "RELEASE":
             checkout_to_tag(get_latest_tag_name(product_id))
             dist_name = get_dist_name()
@@ -605,6 +646,7 @@ def main():
             build_module(module_path)
         intg_module_path = Path(workspace + "/" + product_id + "/" + 'integration')
         build_module(intg_module_path)
+        copy_test_outputs()
         save_log_files()
         create_output_property_fle()
     except Exception as e:

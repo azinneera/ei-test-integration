@@ -39,12 +39,12 @@
             </activation>
             <modules>
                 <module>automation-extensions</module>
-              <!--  <module>mediation-tests</module>
-                <module>business-process-tests</module>
+                <module>mediation-tests</module>
+                <!--<module>business-process-tests</module>
                 <module>dataservice-hosting-tests</module>-->
             </modules>
         </profile>
-    <!--    <profile>
+        <profile>
             <id>mediation-tests-profile</id>
             <activation>
                 <property>
@@ -56,7 +56,7 @@
                 <module>mediation-tests</module>
             </modules>
         </profile> 
-        <profile>
+     <!--   <profile>
             <id>business-process-tests-profile</id>
             <activation>
                 <property>
