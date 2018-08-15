@@ -141,6 +141,7 @@ if [ "${os}" = "Windows" ]; then
   REM_DIR=$(echo "$REM_DIR" | sed 's/\\//g')
   echo "Copying files to ${REM_DIR}.."
   sshpass -p "${password}" scp -q -o StrictHostKeyChecking=no ${FILE1} ${user}@${host}:${REM_DIR}
+  sshpass -p "${password}" scp -q -o StrictHostKeyChecking=no -r ${DIR1} ${user}@${host}:${REM_DIR}
   sshpass -p "${password}" scp -q -o StrictHostKeyChecking=no ${FILE2} ${user}@${host}:${REM_DIR}
   sshpass -p "${password}" scp -q -o StrictHostKeyChecking=no ${FILE3} ${user}@${host}:${REM_DIR}
   sshpass -p "${password}" scp -q -o StrictHostKeyChecking=no ${FILE4} ${user}@${host}:${REM_DIR}

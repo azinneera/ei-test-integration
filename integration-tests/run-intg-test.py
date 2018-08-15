@@ -418,11 +418,11 @@ def build_module(module_path):
     """
     logger.info('Start building a module. Module: ' + str(module_path))
     if sys.platform.startswith('win'):
-        subprocess.call(['mvn', 'clean', 'install', '-B',
+        subprocess.call(['mvn', 'clean', 'install', '-fae', '-B',
                          '-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn'],
                         shell=True, cwd=module_path)
     else:
-        subprocess.call(['mvn', 'clean', 'install', '-B',
+        subprocess.call(['mvn', 'clean', 'install', '-fae', '-B',
                          '-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn'],
                         cwd=module_path)
     logger.info('Module build is completed. Module: ' + str(module_path))
@@ -445,8 +445,9 @@ def copy_test_outputs():
     """
     Copy automation.log and surefire-reports to workspace/test_outputs
     """
+    logger.info("Copying result files to workspace/test_outputs")
     for profile in PROFILE_PATHS:
-        MODULES = get_immediate_child_directories(Path(workspace + "/" + profile))
+        MODULES = get_immediate_child_directories(Path(workspace + "/" + product_id + "/" + 'integration/' + profile))
         for module in MODULES:
             source = Path(workspace + "/" + product_id + "/" + 'integration/' + profile + "/" + module + "/target/surefire-reports/")
             if Path.exists(source):
