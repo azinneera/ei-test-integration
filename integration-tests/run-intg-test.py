@@ -613,6 +613,11 @@ def main():
 
             # Replace the custom testng files to disable tests
             for profile in PROFILE_PATHS:
+                # Replace the custom pom to disable modules
+                profile_pom_source = Path(workspace + "/" + profile + "/pom.xml")
+                profile_pom_destination = Path(workspace + "/" + product_id + "/" + 'integration/' + profile + "/pom.xml")
+                replace_file(profile_pom_source, profile_pom_destination)
+
                 MODULES = get_immediate_child_directories(Path(workspace + "/" + profile))
                 for module in MODULES:
                     testng_source = Path(workspace + "/" + profile + "/" + module + "/" + "testng.xml")
